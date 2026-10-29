@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { Suspense, useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
@@ -24,7 +24,7 @@ type SellerProfile = {
   display_name: string | null;
 };
 
-export default function ChatPage() {
+function ChatPageContent() {
   const params = useParams<{ productId: string }>();
   const router = useRouter();
   const productId = params.productId;
@@ -315,3 +315,99 @@ export default function ChatPage() {
                   </p>
 
                   <p className="mt-1.5 text-xs text-slate-400">
+                    Ask the seller about the product, price, or availability.
+                  </p>
+                </div>
+              ) : (
+                messages.map((message) => {
+                  const mine = message.sender_id === userId;
+
+                  return (
+                    <div
+                      key={message.id}
+                      className={`flex ${
+                        mine ? "justify-end" : "justify-start"
+                      }`}
+                    >
+                      <div
+                        className={`max-w-[85%] rounded-2xl px-4 py-3 shadow-sm ${
+                          mine
+                            ? "bg-gradient-to-r from-cyan-600 to-blue-600 text-white border border-cyan-400/30"
+                            : "bg-slate-900 text-slate-100 border border-slate-800"
+                        }`}
+                      >
+                        <p className="whitespace-pre-wrap break-words text-xs leading-relaxed">
+                          {message.body}
+                        </p>
+
+                        <p
+                          className={`mt-2 text-right text-[10px] ${
+                            mine ? "text-cyan-100" : "text-slate-400"
+                          }`}
+                        >
+                          {new Date(message.created_at).toLocaleString(
+                            "en-IN",
+                            {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            }
+                          )}
+                        </p>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </section>
+
+            {error && (
+              <p role="alert" className="mx-4 mb-2 text-xs font-bold text-rose-400">
+                {error}
+              </p>
+            )}
+
+            <form
+              onSubmit={handleSend}
+              className="flex gap-2 border-t border-cyan-900/60 bg-slate-950/60 p-3 sm:p-4 backdrop-blur-md"
+            >
+              <input
+                value={newMessage}
+                onChange={(e) => setNewMessage(e.target.value)}
+                placeholder="Write a secure message..."
+                aria-label="Write a message"
+                maxLength={3000}
+                disabled={!conversationId || sending}
+                className="min-w-0 flex-1 rounded-xl border border-cyan-500/30 bg-slate-900 px-4 py-3 text-xs text-slate-100 placeholder-slate-500 outline-none transition focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 disabled:bg-slate-950"
+              />
+
+              <button
+                type="submit"
+                disabled={
+                  !newMessage.trim() || sending || !conversationId
+                }
+                className="rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 px-5 py-3 text-xs font-extrabold text-white shadow-md shadow-cyan-500/20 hover:from-cyan-400 hover:to-blue-500 transition disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {sending ? "Sending..." : "Send"}
+              </button>
+            </form>
+          </>
+        )}
+      </div>
+    </main>
+  );
+}
+
+
+export default function ChatPage() {
+  return (
+    <Suspense
+      fallback={
+        <main className="flex min-h-screen items-center justify-center bg-[#020617] px-4 text-sm font-semibold text-cyan-400">
+          Loading chat...
+        </main>
+      }
+    >
+      <ChatPageContent />
+    </Suspense>
+  );
+}
