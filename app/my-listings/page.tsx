@@ -119,8 +119,6 @@ export default function MyListingsPage() {
       mounted = false;
       subscription.unsubscribe();
     };
-    // Load once and refresh when authentication changes.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   async function deleteListing(listing: Listing) {
@@ -185,62 +183,62 @@ export default function MyListingsPage() {
   }
 
   return (
-    <main className="min-h-screen bg-slate-50 text-slate-900">
-      <header className="border-b border-slate-200 bg-white">
+    <main className="min-h-screen bg-[#020617] text-slate-100 font-sans">
+      <header className="border-b border-cyan-500/20 bg-[#070d1e]/90 backdrop-blur-xl">
         <div className="mx-auto flex max-w-5xl items-center justify-between gap-4 px-4 py-4 sm:px-6">
-          <Link href="/" className="flex items-center gap-2 text-xl font-black tracking-tight">
-            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-600 text-white">A</span>
-            Apna Bazaar
+          <Link href="/" className="group flex items-center gap-2.5 text-xl font-black tracking-tight">
+            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-tr from-cyan-500 to-blue-600 text-white shadow-md shadow-cyan-500/30">A</span>
+            APNA<span className="text-cyan-400">BAZAAR</span>
           </Link>
-          <Link href="/sell" className="rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700">+ Post an Ad</Link>
+          <Link href="/sell" className="rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 px-4 py-2 text-xs font-extrabold text-white shadow-md shadow-cyan-500/20 hover:from-cyan-400 hover:to-blue-500 transition uppercase tracking-wider">+ Post Ad</Link>
         </div>
       </header>
 
       <section className="mx-auto max-w-5xl px-4 py-8 sm:px-6 sm:py-10">
         <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
           <div>
-            <p className="text-sm font-semibold uppercase tracking-wider text-emerald-700">Your account</p>
-            <h1 className="mt-1 text-3xl font-black tracking-tight sm:text-4xl">My Listings</h1>
-            <p className="mt-2 text-slate-600">Manage the products you have posted.</p>
+            <p className="text-[10px] font-black uppercase tracking-widest text-cyan-400">Your Account</p>
+            <h1 className="mt-1 text-2xl font-black tracking-tight sm:text-3xl text-white uppercase">My Listings</h1>
+            <p className="mt-1 text-xs text-slate-400">Manage the products you have posted on Apna Bazaar.</p>
           </div>
-          <span className="rounded-full bg-white px-3 py-1.5 text-sm font-semibold text-slate-600 ring-1 ring-slate-200">{listings.length} {listings.length === 1 ? "listing" : "listings"}</span>
+          <span className="rounded-full border border-cyan-500/30 bg-slate-900 px-3.5 py-1 text-xs font-bold text-cyan-300 shadow-sm">{listings.length} {listings.length === 1 ? "listing" : "listings"}</span>
         </div>
 
-        {errorMessage && <p role="alert" className="mb-4 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">{errorMessage}</p>}
+        {errorMessage && <p role="alert" className="mb-4 rounded-xl border border-rose-500/30 bg-rose-950/60 p-3 text-xs font-bold text-rose-300">{errorMessage}</p>}
 
         {loading ? (
-          <div className="rounded-2xl border border-slate-200 bg-white p-10 text-center text-slate-600">Loading your listings...</div>
+          <div className="rounded-2xl border border-cyan-500/20 bg-[#070d1e] p-12 text-center text-xs font-bold text-cyan-400 animate-pulse">Loading your listings...</div>
         ) : listings.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-slate-300 bg-white px-5 py-14 text-center">
+          <div className="rounded-2xl border border-dashed border-cyan-500/30 bg-slate-900/40 px-5 py-14 text-center">
             <div className="text-4xl">📦</div>
-            <h2 className="mt-3 text-xl font-bold">No listings yet</h2>
-            <p className="mt-2 text-slate-600">Products you post will appear here.</p>
-            <Link href="/sell" className="mt-5 inline-flex rounded-xl bg-emerald-600 px-5 py-3 font-semibold text-white hover:bg-emerald-700">Post your first ad</Link>
-            {!userId && <p className="mt-4 text-sm text-slate-500">Log in to see listings saved to your Supabase account.</p>}
+            <h2 className="mt-3 text-sm font-bold text-slate-200">No listings yet</h2>
+            <p className="mt-1 text-xs text-slate-400">Products you post will appear here securely.</p>
+            <Link href="/sell" className="mt-5 inline-flex rounded-xl bg-cyan-600 px-5 py-2.5 text-xs font-extrabold text-white hover:bg-cyan-500 transition shadow-md shadow-cyan-600/30">Post your first ad</Link>
+            {!userId && <p className="mt-4 text-[11px] text-slate-500">Log in to sync and view listings saved to your Supabase account.</p>}
           </div>
         ) : (
           <div className="grid gap-4 sm:grid-cols-2">
             {listings.map((listing) => {
               const imageUrl = listing.image_url ?? listing.image;
               return (
-                <article key={`${listing.source}-${listing.id}`} className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+                <article key={`${listing.source}-${listing.id}`} className="overflow-hidden rounded-2xl border border-cyan-500/20 bg-[#070d1e] shadow-lg shadow-cyan-950/20">
                   <div className="flex gap-4 p-4">
-                    <div className="flex h-28 w-28 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-emerald-50 sm:h-32 sm:w-32">
-                      {imageUrl ? <img src={imageUrl} alt={listing.title} className="h-full w-full object-cover" /> : <span className="text-4xl">📦</span>}
+                    <div className="flex h-28 w-28 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-cyan-500/20 bg-slate-950 sm:h-32 sm:w-32">
+                      {imageUrl ? <img src={imageUrl} alt={listing.title} className="h-full w-full object-cover" /> : <span className="text-3xl">📦</span>}
                     </div>
                     <div className="min-w-0 flex-1">
-                      <p className="text-xs font-semibold uppercase tracking-wide text-emerald-700">{listing.source === "database" ? "Published listing" : "Saved in this browser"}</p>
-                      <h2 className="mt-1 break-words text-lg font-bold">{listing.title}</h2>
-                      <p className="mt-1 text-lg font-extrabold">{formatPrice(listing.price)}</p>
-                      <p className="mt-1 text-sm text-slate-500">{listing.category} · {listing.condition || "Used"}</p>
-                      {listing.location && <p className="mt-1 truncate text-sm text-slate-500">{listing.location}</p>}
+                      <p className="text-[10px] font-black uppercase tracking-wider text-cyan-400">{listing.source === "database" ? "Published Listing" : "Saved in Browser"}</p>
+                      <h2 className="mt-1 break-words text-sm font-bold text-white">{listing.title}</h2>
+                      <p className="mt-1 text-base font-black text-white">{formatPrice(listing.price)}</p>
+                      <p className="mt-1 text-xs text-slate-400">{listing.category} · {listing.condition || "Used"}</p>
+                      {listing.location && <p className="mt-1 truncate text-xs text-slate-500">📍 {listing.location}</p>}
                     </div>
                   </div>
-                  {listing.description && <p className="px-4 pb-3 text-sm text-slate-600">{listing.description}</p>}
-                  <div className="flex items-center justify-between gap-3 border-t border-slate-100 px-4 py-3">
-                    <Link href="/" className="text-sm font-semibold text-emerald-700 hover:text-emerald-800">View marketplace</Link>
-                    <button type="button" onClick={() => void deleteListing(listing)} disabled={deletingId === String(listing.id)} className="rounded-lg border border-red-200 px-3 py-2 text-sm font-semibold text-red-700 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-60">
-                      {deletingId === String(listing.id) ? "Deleting..." : "Delete listing"}
+                  {listing.description && <p className="px-4 pb-3 text-xs text-slate-300 line-clamp-2">{listing.description}</p>}
+                  <div className="flex items-center justify-between gap-3 border-t border-cyan-900/60 bg-slate-950/40 px-4 py-3">
+                    <Link href="/" className="text-xs font-bold text-cyan-400 hover:text-cyan-300 transition">View Marketplace</Link>
+                    <button type="button" onClick={() => void deleteListing(listing)} disabled={deletingId === String(listing.id)} className="rounded-lg border border-rose-500/30 bg-rose-950/40 px-3 py-1.5 text-xs font-bold text-rose-300 transition hover:bg-rose-900/60 disabled:cursor-not-allowed disabled:opacity-50">
+                      {deletingId === String(listing.id) ? "Deleting..." : "Delete Listing"}
                     </button>
                   </div>
                 </article>
@@ -249,8 +247,8 @@ export default function MyListingsPage() {
           </div>
         )}
 
-        <div className="mt-8 rounded-xl bg-amber-50 p-4 text-sm text-amber-900">
-          <strong>Note:</strong> Browser-saved listings are visible only in this browser. Supabase listings are loaded for the account currently signed in.
+        <div className="mt-8 rounded-2xl border border-cyan-500/20 bg-slate-900/60 p-4 text-xs text-slate-400 backdrop-blur-md">
+          <strong className="text-cyan-300">Note:</strong> Browser-saved listings are stored locally on this device, whereas Supabase listings sync securely with your active account profile.
         </div>
       </section>
     </main>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -9,16 +9,57 @@ import { supabase } from "@/lib/supabase";
 export default function SellPage() {
   const router = useRouter();
 
+  const [authChecking, setAuthChecking] = useState(true);
+  const [authorized, setAuthorized] = useState(false);
+
   const [title, setTitle] = useState("");
   const [price, setPrice] = useState("");
   const [category, setCategory] = useState("");
   const [condition, setCondition] = useState("Used");
+  const [location, setLocation] = useState("");
   const [description, setDescription] = useState("");
   const [image, setImage] = useState("");
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imageName, setImageName] = useState("");
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
+
+  // Check authentication before showing the listing form.
+  useEffect(() => {
+    let active = true;
+
+    async function checkLogin() {
+      try {
+        const {
+          data: { user },
+          error: authError,
+        } = await supabase.auth.getUser();
+
+        if (!active) return;
+
+        if (authError || !user) {
+          router.replace("/login?next=/sell");
+          return;
+        }
+
+        setAuthorized(true);
+      } catch {
+        if (active) {
+          router.replace("/login?next=/sell");
+        }
+      } finally {
+        if (active) {
+          setAuthChecking(false);
+        }
+      }
+    }
+
+    void checkLogin();
+
+    return () => {
+      active = false;
+    };
+  }, [router]);
 
   function handleImageChange(
     event: React.ChangeEvent<HTMLInputElement>
@@ -76,8 +117,18 @@ export default function SellPage() {
     event.preventDefault();
     setError("");
 
+    if (!authorized) {
+      router.replace("/login?next=/sell");
+      return;
+    }
+
     if (!imageFile) {
       setError("Please upload a product photo.");
+      return;
+    }
+
+    if (!location.trim()) {
+      setError("Please enter a valid location.");
       return;
     }
 
@@ -91,22 +142,22 @@ export default function SellPage() {
     let uploadedFilePath: string | null = null;
 
     try {
+      // Verify the current user again before publishing.
       const {
         data: { user },
         error: authError,
       } = await supabase.auth.getUser();
 
-      if (authError) {
-        setError("Unable to verify your login. Please try again.");
+      if (authError || !user) {
+        setAuthorized(false);
+        router.replace("/login?next=/sell");
         return;
       }
 
-      if (!user) {
-        router.push("/login?next=/sell");
-        return;
-      }
-
-      const fileExtension = imageFile.name.split(".").pop()?.toLowerCase();
+      const fileExtension = imageFile.name
+        .split(".")
+        .pop()
+        ?.toLowerCase();
 
       const safeExtension =
         fileExtension && /^[a-z0-9]+$/.test(fileExtension)
@@ -141,8 +192,8 @@ export default function SellPage() {
           price: Number(price),
           category,
           condition,
+          location: location.trim(),
           description: description.trim(),
-          location: null,
           image_url: publicUrlData.publicUrl,
         });
 
@@ -182,38 +233,49 @@ export default function SellPage() {
     }
   }
 
+  // Do not display the form while checking login or redirecting.
+  if (authChecking || !authorized) {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-[#020617] px-4 text-slate-100 font-sans">
+        <div className="text-center">
+          <div className="mx-auto h-10 w-10 animate-spin rounded-full border-4 border-cyan-900 border-t-cyan-400" />
+          <p className="mt-4 text-xs font-bold text-cyan-400 animate-pulse">
+            Checking your login...
+          </p>
+        </div>
+      </main>
+    );
+  }
+
   return (
-    <main className="min-h-screen bg-slate-50 px-4 py-8 text-slate-900 sm:py-12">
+    <main className="min-h-screen bg-[#020617] px-4 py-8 text-slate-100 font-sans sm:py-12">
       <div className="mx-auto max-w-3xl">
         <Link
           href="/"
-          className="inline-flex items-center gap-2 font-bold text-emerald-700 transition hover:text-emerald-900"
+          className="inline-flex items-center gap-2 text-xs font-bold text-cyan-400 hover:text-cyan-300 transition"
         >
           ← Apna Bazaar
         </Link>
 
-        <div className="mt-6 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-8">
+        <div className="mt-6 rounded-2xl border border-cyan-500/30 bg-[#070d1e] p-5 shadow-2xl sm:p-8 backdrop-blur-xl">
           <div className="mb-8">
-            <p className="text-sm font-bold uppercase tracking-wider text-emerald-700">
-              SELL ON APNA BAZAAR
+            <p className="text-[10px] font-black uppercase tracking-widest text-cyan-400">
+              Sell on Apna Bazaar
             </p>
 
-            <h1 className="mt-2 text-3xl font-black sm:text-4xl">
-              Sell your item
+            <h1 className="mt-2 text-2xl font-black uppercase tracking-wide text-white sm:text-3xl">
+              Sell Your Item
             </h1>
 
-            <p className="mt-3 text-sm leading-6 text-slate-500">
-              Enter your product details to publish a listing.
+            <p className="mt-2 text-xs leading-relaxed text-slate-400">
+              Enter your product details to publish your listing securely.
             </p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
-              <label
-                htmlFor="title"
-                className="mb-2 block text-sm font-bold"
-              >
-                Product name *
+              <label htmlFor="title" className="mb-1.5 block text-[10px] font-black uppercase tracking-wider text-slate-300">
+                Product Name *
               </label>
 
               <input
@@ -224,16 +286,13 @@ export default function SellPage() {
                 minLength={3}
                 maxLength={100}
                 required
-                className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none transition focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100"
+                className="w-full rounded-xl border border-cyan-500/30 bg-slate-900 px-4 py-3 text-xs text-slate-100 placeholder-slate-500 outline-none transition focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400"
               />
             </div>
 
             <div className="grid gap-6 sm:grid-cols-2">
               <div>
-                <label
-                  htmlFor="price"
-                  className="mb-2 block text-sm font-bold"
-                >
+                <label htmlFor="price" className="mb-1.5 block text-[10px] font-black uppercase tracking-wider text-slate-300">
                   Price (₹) *
                 </label>
 
@@ -247,15 +306,12 @@ export default function SellPage() {
                   max="100000000"
                   step="1"
                   required
-                  className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none transition focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100"
+                  className="w-full rounded-xl border border-cyan-500/30 bg-slate-900 px-4 py-3 text-xs text-slate-100 placeholder-slate-500 outline-none transition focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400"
                 />
               </div>
 
               <div>
-                <label
-                  htmlFor="category"
-                  className="mb-2 block text-sm font-bold"
-                >
+                <label htmlFor="category" className="mb-1.5 block text-[10px] font-black uppercase tracking-wider text-slate-300">
                   Category *
                 </label>
 
@@ -264,27 +320,24 @@ export default function SellPage() {
                   value={category}
                   onChange={(e) => setCategory(e.target.value)}
                   required
-                  className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 outline-none focus:border-emerald-600"
+                  className="w-full rounded-xl border border-cyan-500/30 bg-slate-900 px-4 py-3 text-xs text-slate-100 outline-none transition focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400"
                 >
-                  <option value="">Choose a category</option>
-                  <option value="Mobiles">Mobiles</option>
-                  <option value="Electronics">Electronics</option>
-                  <option value="Vehicles">Cars & Bikes</option>
-                  <option value="Furniture">Furniture</option>
-                  <option value="Fashion">Fashion</option>
-                  <option value="Home & Kitchen">Home & Kitchen</option>
-                  <option value="Books">Books & Education</option>
-                  <option value="Other">Other</option>
+                  <option value="" className="bg-slate-900 text-slate-400">Choose a category</option>
+                  <option value="Mobiles" className="bg-slate-900">Mobiles</option>
+                  <option value="Electronics" className="bg-slate-900">Electronics</option>
+                  <option value="Vehicles" className="bg-slate-900">Cars & Bikes</option>
+                  <option value="Furniture" className="bg-slate-900">Furniture</option>
+                  <option value="Fashion" className="bg-slate-900">Fashion</option>
+                  <option value="Home & Kitchen" className="bg-slate-900">Home & Kitchen</option>
+                  <option value="Books" className="bg-slate-900">Books & Education</option>
+                  <option value="Other" className="bg-slate-900">Other</option>
                 </select>
               </div>
             </div>
 
             <div>
-              <label
-                htmlFor="condition"
-                className="mb-2 block text-sm font-bold"
-              >
-                Product condition *
+              <label htmlFor="condition" className="mb-1.5 block text-[10px] font-black uppercase tracking-wider text-slate-300">
+                Product Condition *
               </label>
 
               <select
@@ -292,21 +345,37 @@ export default function SellPage() {
                 value={condition}
                 onChange={(e) => setCondition(e.target.value)}
                 required
-                className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 outline-none focus:border-emerald-600"
+                className="w-full rounded-xl border border-cyan-500/30 bg-slate-900 px-4 py-3 text-xs text-slate-100 outline-none transition focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400"
               >
-                <option value="New">Brand new</option>
-                <option value="Like new">Like new</option>
-                <option value="Used">Used</option>
-                <option value="Good condition">Good condition</option>
+                <option value="New" className="bg-slate-900">Brand New</option>
+                <option value="Like new" className="bg-slate-900">Like New</option>
+                <option value="Used" className="bg-slate-900">Used</option>
+                <option value="Good condition" className="bg-slate-900">Good Condition</option>
               </select>
             </div>
 
             <div>
-              <label
-                htmlFor="description"
-                className="mb-2 block text-sm font-bold"
-              >
-                Product description *
+              <label htmlFor="location" className="mb-1.5 block text-[10px] font-black uppercase tracking-wider text-slate-300">
+                Location / City *
+              </label>
+
+              <input
+                id="location"
+                value={location}
+                onChange={(e) => setLocation(e.target.value)}
+                placeholder="e.g. Patna, Bihar or Delhi / NCR"
+                maxLength={100}
+                required
+                className="w-full rounded-xl border border-cyan-500/30 bg-slate-900 px-4 py-3 text-xs text-slate-100 placeholder-slate-500 outline-none transition focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400"
+              />
+              <p className="mt-1.5 text-[10px] text-slate-500">
+                Buyers from this location will be able to discover your item easily.
+              </p>
+            </div>
+
+            <div>
+              <label htmlFor="description" className="mb-1.5 block text-[10px] font-black uppercase tracking-wider text-slate-300">
+                Product Description *
               </label>
 
               <textarea
@@ -318,21 +387,17 @@ export default function SellPage() {
                 minLength={10}
                 maxLength={2000}
                 required
-                className="w-full resize-y rounded-xl border border-slate-300 px-4 py-3 outline-none transition focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100"
+                className="w-full resize-y rounded-xl border border-cyan-500/30 bg-slate-900 px-4 py-3 text-xs text-slate-100 placeholder-slate-500 outline-none transition focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400"
               />
 
-              <p className="mt-1 text-right text-xs text-slate-400">
+              <p className="mt-1 text-right text-[10px] text-slate-500">
                 {description.length}/2000 characters
               </p>
             </div>
 
-            {/* Product photo upload */}
             <div>
-              <label
-                htmlFor="image"
-                className="mb-3 block text-sm font-bold text-slate-800"
-              >
-                Product photo *
+              <label htmlFor="image" className="mb-2 block text-[10px] font-black uppercase tracking-wider text-slate-300">
+                Product Photo *
               </label>
 
               <input
@@ -348,42 +413,40 @@ export default function SellPage() {
 
               <label
                 htmlFor="image"
-                className={`flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-emerald-300 bg-emerald-50/50 px-5 py-8 text-center transition hover:border-emerald-500 hover:bg-emerald-50 ${
-                  saving
-                    ? "cursor-not-allowed opacity-60"
-                    : "cursor-pointer"
+                className={`flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-cyan-500/30 bg-slate-900/60 px-5 py-8 text-center transition hover:border-cyan-400 hover:bg-slate-900 ${
+                  saving ? "cursor-not-allowed opacity-60" : "cursor-pointer"
                 }`}
               >
-                <span className="mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-emerald-100 text-3xl">
+                <span className="mb-3 flex h-14 w-14 items-center justify-center rounded-2xl border border-cyan-500/30 bg-cyan-950/40 text-2xl text-cyan-300 shadow-sm">
                   📷
                 </span>
 
-                <span className="text-base font-bold text-emerald-800">
+                <span className="text-xs font-extrabold text-white">
                   {imageName ? "Change product photo" : "Upload product photo"}
                 </span>
 
-                <span className="mt-2 text-sm text-slate-500">
+                <span className="mt-1 text-[11px] text-slate-400">
                   Click here to choose an image from your device
                 </span>
 
-                <span className="mt-1 text-xs text-slate-400">
+                <span className="mt-1 text-[10px] text-slate-500">
                   JPG, PNG, WebP or GIF · Maximum 5 MB
                 </span>
 
-                <span className="mt-4 rounded-xl bg-emerald-700 px-6 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-emerald-800">
+                <span className="mt-4 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 px-5 py-2.5 text-xs font-bold text-white shadow-md shadow-cyan-500/20 transition hover:from-cyan-400 hover:to-blue-500">
                   {imageName ? "Choose another photo" : "Choose photo"}
                 </span>
               </label>
 
               {imageName && (
-                <div className="mt-3 flex items-center justify-between gap-3 rounded-xl border border-emerald-100 bg-emerald-50 p-3">
-                  <div className="flex min-w-0 items-center gap-2">
+                <div className="mt-3 flex items-center justify-between gap-3 rounded-xl border border-cyan-500/20 bg-slate-900 p-3 shadow-inner">
+                  <div className="flex min-w-0 items-center gap-2.5">
                     <span className="text-xl">🖼️</span>
                     <div className="min-w-0">
-                      <p className="text-xs font-semibold text-emerald-800">
-                        Photo selected
+                      <p className="text-[10px] font-black uppercase text-cyan-400">
+                        Photo Selected
                       </p>
-                      <p className="truncate text-sm text-slate-600">
+                      <p className="truncate text-xs text-slate-300">
                         {imageName}
                       </p>
                     </div>
@@ -404,7 +467,7 @@ export default function SellPage() {
 
                       if (input) input.value = "";
                     }}
-                    className="shrink-0 rounded-lg px-3 py-2 text-sm font-bold text-red-600 transition hover:bg-red-50 disabled:opacity-50"
+                    className="shrink-0 rounded-lg border border-rose-500/30 bg-rose-950/40 px-3 py-1.5 text-xs font-bold text-rose-300 transition hover:bg-rose-900/60 disabled:opacity-50"
                   >
                     Remove
                   </button>
@@ -412,9 +475,9 @@ export default function SellPage() {
               )}
 
               {image && (
-                <div className="mt-4 overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 p-2">
-                  <p className="mb-2 px-2 text-xs font-bold uppercase tracking-wide text-slate-500">
-                    Photo preview
+                <div className="mt-4 overflow-hidden rounded-2xl border border-cyan-500/20 bg-slate-950 p-2 shadow-inner">
+                  <p className="mb-2 px-2 text-[10px] font-black uppercase tracking-wider text-slate-400">
+                    Photo Preview
                   </p>
 
                   <Image
@@ -429,16 +492,14 @@ export default function SellPage() {
               )}
             </div>
 
-            <div className="rounded-xl bg-amber-50 p-4 text-sm leading-6 text-amber-900">
-              <strong>Note:</strong> Your product photo will be uploaded
-              to Apna Bazaar storage, and your listing details will be
-              saved to the database.
+            <div className="rounded-xl border border-cyan-500/20 bg-cyan-950/30 p-4 text-xs leading-relaxed text-cyan-300">
+              <strong className="text-white">Note:</strong> Your product photo will be securely uploaded to Apna Bazaar storage, and your listing will be published instantly.
             </div>
 
             {error && (
               <p
                 role="alert"
-                className="rounded-xl border border-red-100 bg-red-50 p-3 text-sm text-red-700"
+                className="rounded-xl border border-rose-500/30 bg-rose-950/60 p-3 text-xs font-bold text-rose-300"
               >
                 {error}
               </p>
@@ -447,11 +508,11 @@ export default function SellPage() {
             <button
               type="submit"
               disabled={saving}
-              className="w-full rounded-xl bg-emerald-700 px-5 py-4 font-bold text-white transition hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-60"
+              className="w-full rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 px-5 py-3.5 text-xs font-extrabold text-white shadow-lg shadow-cyan-500/25 transition hover:from-cyan-400 hover:to-blue-500 disabled:cursor-not-allowed disabled:opacity-60 uppercase tracking-wider"
             >
               {saving
-                ? "Uploading and publishing..."
-                : "Save and publish listing →"}
+                ? "Uploading and Publishing..."
+                : "Save and Publish Listing →"}
             </button>
           </form>
         </div>
